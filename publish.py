@@ -18,7 +18,11 @@ USER_ID = os.environ["IG_USER_ID"]
 
 
 def call(method, url, params=None, data=None, headers=None):
-    if params:
+    if params and method == "POST" and data is None:
+        # 인스타는 POST 값을 주소 뒤가 아니라 본문으로 받아야 upload_type 등을 읽는다
+        data = urllib.parse.urlencode(params).encode("utf-8")
+        headers = {**(headers or {}), "Content-Type": "application/x-www-form-urlencoded"}
+    elif params:
         url += "?" + urllib.parse.urlencode(params)
     req = urllib.request.Request(url, data=data, method=method, headers=headers or {})
     try:
