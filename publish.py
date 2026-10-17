@@ -15,6 +15,7 @@ from pathlib import Path
 API = "https://graph.instagram.com/v23.0"
 TOKEN = os.environ["IG_TOKEN"]
 USER_ID = os.environ["IG_USER_ID"]
+AI_NOTE = "이 영상은 AI로 만든 인물이 나와요."
 
 
 def call(method, url, params=None, data=None, headers=None):
@@ -40,6 +41,12 @@ def main():
         sys.exit(f"{folder} 안에 mp4가 1개여야 합니다 (지금 {len(videos)}개)")
     video = videos[0]
     caption = (folder / "게시글.txt").read_text(encoding="utf-8").strip()
+    # API로는 AI 라벨을 켤 수 없어서 게시글에 AI 안내 한 줄을 넣는다 (해시태그 구분선 "-" 앞)
+    if AI_NOTE not in caption:
+        lines = caption.split("\n")
+        at = lines.index("-") if "-" in lines else len(lines)
+        lines.insert(at, AI_NOTE)
+        caption = "\n".join(lines)
 
     # 1~2) 인스타가 공개 저장소의 영상 주소를 직접 가져가게 한다
     # (인스타 로그인 방식은 파일 직접 밀어 넣기를 받지 않음 — 2026-10-17 확인)
