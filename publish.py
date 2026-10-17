@@ -41,25 +41,22 @@ def main():
     video = videos[0]
     caption = (folder / "게시글.txt").read_text(encoding="utf-8").strip()
 
-    # 1) 빈 상자 만들기 (영상은 다음 단계에서 직접 밀어 넣음 → 저장소가 비공개여도 됨)
+    # 1~2) 인스타가 공개 저장소의 영상 주소를 직접 가져가게 한다
+    # (인스타 로그인 방식은 파일 직접 밀어 넣기를 받지 않음 — 2026-10-17 확인)
+    repo = os.environ["GITHUB_REPOSITORY"]
+    sha = os.environ["GITHUB_SHA"]
+    path = urllib.parse.quote(video.as_posix())
+    video_url = f"https://raw.githubusercontent.com/{repo}/{sha}/{path}"
+    print("영상 주소:", video_url)
     box = call("POST", f"{API}/{USER_ID}/media", params={
         "media_type": "REELS",
-        "upload_type": "resumable",
+        "video_url": video_url,
         "caption": caption,
         "share_to_feed": "true",
         "access_token": TOKEN,
     })
-    box_id, upload_uri = box["id"], box["uri"]
+    box_id = box["id"]
     print("상자 만듦:", box_id)
-
-    # 2) 영상 밀어 넣기
-    data = video.read_bytes()
-    call("POST", upload_uri, data=data, headers={
-        "Authorization": f"OAuth {TOKEN}",
-        "offset": "0",
-        "file_size": str(len(data)),
-    })
-    print("영상 보냄:", video.name, len(data), "바이트")
 
     # 3) 인스타가 영상 처리 끝낼 때까지 기다리기 (최대 10분)
     for _ in range(60):
