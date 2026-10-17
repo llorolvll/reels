@@ -1,0 +1,46 @@
+name: 인스타 발행
+
+# 예약 없음. 사장님이 "발행"이라고 할 때 이 버튼(Run workflow)을 눌러서만 돈다.
+on:
+  workflow_dispatch:
+    inputs:
+      folder:
+        description: "발행대기 안의 폴더 이름 (예: 09_모션영상475)"
+        required: true
+
+permissions:
+  contents: write
+
+concurrency: publish
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 인스타에 올리기
+        id: post
+        env:
+          IG_TOKEN: ${{ secrets.IG_TOKEN }}
+          IG_USER_ID: "17841450366430837"
+        run: python publish.py "${{ inputs.folder }}"
+
+      - name: 올림 폴더로 옮기고 기록 남기기
+        if: steps.post.outputs.link != ''
+        env:
+          FOLDER: ${{ inputs.folder }}
+          LINK: ${{ steps.post.outputs.link }}
+        run: |
+          mkdir -p 올림
+          git mv "발행대기/$FOLDER" "올림/$FOLDER"
+          echo "- $(TZ=Asia/Seoul date '+%Y-%m-%d %H:%M') $FOLDER → $LINK" >> 발행기록.md
+          git config user.name "eyuha-bot"
+          git config user.email "eyuha-bot@users.noreply.github.com"
+          git add -A
+          git commit -m "발행: $FOLDER"
+          git push
